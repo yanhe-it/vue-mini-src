@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="../../node_modules/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    <!-- 模板 -->
+    <div id="root">
+      <p>{{name}}</p>
+      <p>{{message}}</p>
+    </div>
+
+    <script>
+      console.log(root);
+      // 第二步：创建实例
+      let app = new Vue({
+        el: "#root",
+        data() {
+          return {
+            name: "aaa",
+            message: "bytedance"
+          };
+        }
+      });
+      // 第三步：挂载
+      console.log(root);
+    </script>
+  </body>
+</html>

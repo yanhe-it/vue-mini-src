@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <!-- 模板 -->
+    <div id="root">
+      <p>{{ name.firstName }}</p>
+    </div>
+
+    <script>
+      // 要解决一个问题：
+      // 使用　'xxx.yyy.xxx＇ 可以访问某一个对象
+      // 解决方法：　用字符串路径来访问成员的对象
+      // 函数柯里化
+      function createGetValueByPath(path) {
+        let paths = path.split(".");
+
+        return function getValueByPath(obj) {
+          let res = obj;
+          let prop = null;
+          // shift函数　删除数组　第一个元素，　并　返回　第一个元素的值
+          while ((prop = paths.shift())) {
+            res = res[prop]; // obj.name 会转化为 obj["name"]
+          }
+          return res;
+        };
+      }
+
+      let regBrace = /\{\{(.+?)\}\}/g;
+      function compiler(template, data) {
+        let childNodes = template.childNodes;
+        for (let i = 0; i < childNodes.length; i++) {
+          let type = childNodes[i].nodeType; // 1.元素 2.属性 3.文本 8.注释 9.文档
+          if (type === 3) {
+            // 文本结点,可以判断里面是否有 {{}} 插值
+            let txt = childNodes[i].nodeValue;
+            // 判断有没有{{}}
+            txt = txt.replace(regBrace, function(_, g) {
+              // replace使用正则匹配一次,函数就调用一次 args0:匹配到的内容 argsn:正则中的第n组
+              // debugger;
+              let path = g.trim(); //花括号中的东西
+              let getValueByPath = createGetValueByPath(path);
+              let value = getValueByPath(data)
+              // 替换{{}}
+              return value;
+            });
+            // 注意：　txt现在和DOM元素没有关系
+            childNodes[i].nodeValue = txt;
+          } else if (type === 1) {
+            // 元素,考虑它有没有子元素,将其子元素进行 判断是否有插值
+            compiler(childNodes[i], data);
+          }
+        }
+      }
+
+      function yhVue(options) {
+        // 习惯：_开头表示　内部的数据，$开头表示　只读数据
+        this._data = options.data;
+        this._el = options.el;
+
+        // 准备（准备模板）
+        this.$el = this._templateDOM = document.querySelector(this._el);
+        this._parent = this._templateDOM.parentNode;
+
+        // 渲染
+        this.render();
+      }
+      /** 将模板　结合　数据，　得到HTML　加载到　页面中 */
+      // js中prototype能向对象添加原型和方法
+      yhVue.prototype.render = function() {
+        this.compiler();
+      };
+      /** 编译，　将模板与数据结合　得到真正的 DOM　元素 */
+      yhVue.prototype.compiler = function() {
+        let realHTMLDOM = this._templateDOM.cloneNode(true); // 将模板 拷贝 得到一个　准DOM
+        compiler(realHTMLDOM, this._data);
+        this.update(realHTMLDOM);
+      };
+      /**　将　DOM 元素　加载到　页面中 */
+      yhVue.prototype.update = function(real) {
+        this._parent.replaceChild(real, document.querySelector("#root"));
+      };
+
+      // 想想怎么用
+      let app = new yhVue({
+        el: "#root",
+        data: {
+          name: {
+            firstName: "河",
+            lastName: "闫"
+          },
+          message: "ByteDance"
+        }
+      });
+    </script>
+  </body>
+</html>

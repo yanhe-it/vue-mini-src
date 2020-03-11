@@ -1,0 +1,295 @@
+<!-- 虚拟DOM　柯里化  -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <div id="root">
+      <div class="c1">{{ name }}</div>
+      <div title="t2" id="hello2">{{ age }}</div>
+      <div title="t3">{{ gender }}</div>
+      <ul>
+        <li>1</li>
+        <li>2</li>
+        <li>3</li>
+      </ul>
+    </div>
+
+    <script>
+      class VNode {
+        constructor(tag, data, value, type) {
+          this.tag = tag && tag.toLowerCase();
+          this.data = data;
+          this.value = value;
+          this.type = type;
+          this.children = [];
+        }
+
+        appendChild(vnode) {
+          this.children.push(vnode);
+        }
+      }
+      /*
+       * 使用　递归　来遍历 DOM 元素，生成　虚拟DOM
+       * Vue　中的源码使用的是　栈结构，使用　栈　存储　父元素　来实现递归生成
+       */
+      function genVNode(node) {
+        let nodeType = node.nodeType;
+        let _vnode = null;
+        if (nodeType === 1) {
+          // 元素
+          let nodeName = node.nodeName;
+          let attrs = node.attributes;
+          let _attrObj = {};
+          for (let i = 0; i < attrs.length; i++) {
+            // attrs[i] 属性节点（nodeType == 2）
+            _attrObj[attrs[i].nodeName] = attrs[i].nodeValue;
+          }
+          _vnode = new VNode(nodeName, _attrObj, undefined, nodeType);
+
+          // vnode 的　子元素
+          let childNodes = node.childNodes;
+          for (let i = 0; i < childNodes.length; i++) {
+            _vnode.appendChild(genVNode(childNodes[i]));
+          }
+        } else if (nodeType === 3) {
+          //文本
+          _vnode = new VNode(undefined, undefined, node.nodeValue, nodeType);
+        }
+
+        return _vnode;
+      }
+
+      function parseVNode(vnode) {
+        let nodeType = vnode.type;
+        let _node = null;
+        if (nodeType === 1) {
+          _node = document.createElement(vnode.tag);
+          let data = vnode.data;
+          // 遍历对象方法 1
+          for (let key in data) {
+            let attrName = key;
+            let attrValue = data[key];
+            _node.setAttribute(attrName, attrValue);
+          }
+          // // 遍历对象方法　2
+          // Object.keys(data).forEach((key) => {
+          //   let attrName = key;
+          //   let attrValue = data[key]
+          //   _node.createAttribute(attrName, attrValue)
+          // })
+          vnode.children.forEach(subvnode => {
+            _node.appendChild(parseVNode(subvnode));
+          });
+        } else if (nodeType === 3) {
+          return document.createTextNode(vnode.value);
+        }
+        return _node;
+      }
+
+      let regBrace = /\{\{(.+?)\}\}/g;
+      function createGetValueByPath(path) {
+        let paths = path.split(".");
+
+        return function getValueByPath(obj) {
+          let res = obj;
+          let prop = null;
+          // shift函数　删除数组　第一个元素，　并　返回　第一个元素的值
+          while ((prop = paths.shift())) {
+            res = res[prop]; // obj.name 会转化为 obj["name"]
+          }
+          return res;
+        };
+      }
+      /** 带槽 VNode + data 生成　带有数据的 VNode, 模拟 AST -> VNode */
+      function combine(vnode, data) {
+        let _type = vnode.type;
+        let _data = vnode.data;
+        let _value = vnode.value;
+        let _tag = vnode.tag;
+        let _children = vnode.children;
+
+        let _vnode = null;
+
+        if (_type === 3) {
+          // 文本节点
+          _value = _value.replace(regBrace, function(_, g) {
+            let path = g.trim(); //花括号中的东西 　　触发了get方法
+            let getValueByPath = createGetValueByPath(path);
+            return getValueByPath(data);
+          });
+          _vnode = new VNode(_tag, _data, _value, _type);
+        } else if (_type === 1) {
+          // 元素节点
+          _vnode = new VNode(_tag, _data, _value, _type);
+          _children.forEach(_subvnode => {
+            _vnode.appendChild(combine(_subvnode, data));
+          });
+        }
+        return _vnode;
+      }
+
+      function yhVue(options) {
+        this._data = options.data;
+        let elm = document.querySelector(options.el);
+        this._template = elm;
+        this._parent = elm.parentNode;
+
+        reactify(
+          this._data,
+          this
+        ); /*　将Ｖue实例传入，折中的处理，后面会修改 */
+
+        this.mount(); // 挂载
+      }
+
+      yhVue.prototype.mount = function() {
+        // 需要提供一个　render 方法，生成　虚拟DOM
+        this.render = this.createRender();
+
+        this.mountComponent();
+      };
+      yhVue.prototype.mountComponent = function() {
+        //　执行mountComponent()函数
+        let mount = () => {
+          this.update(this.render());
+        };
+        mount.call(this); // 本质上应该交给 watcher　来调用，但是这节暂不实现
+      };
+
+      /**
+       * 在真正的　Vue　中使用了　二次提交(类似事务) 设计结构
+       * １．在页面中的 DOM 和　虚拟DOM　是一一对应关系
+       * ２．先将　AST　和　数据　生成　VNode（新，使用render算法）
+       * ３．将　旧的VNode 和新的 VNode 比较（diff)，更新（update）
+       */
+
+      // 这里是生成 render　函数，　目的是　缓存　AST　（使用虚拟DOM来模拟）
+      yhVue.prototype.createRender = function() {
+        // debugger
+        let ast = genVNode(this._template);
+        // Vue: AST + data -> VNode
+        return function render() {
+          // 带槽VNode + data -> 含有数据的 VNode
+          let _tmp = combine(ast, this._data);
+          return _tmp;
+        };
+      };
+
+      // 将　虚拟DOM　渲染到　页面中（diff算法）
+      yhVue.prototype.update = function(vnode) {
+        // 简化
+        let realDOM = parseVNode(vnode);
+        // debugger
+        // let _ = 0;
+        this._parent.replaceChild(realDOM, document.querySelector("#root"));
+      };
+
+      let ARRAY_METHOD = [
+        "push",
+        "pop",
+        "shift",
+        "unshift",
+        "reverse",
+        "sort",
+        "splice"
+      ];
+
+      // 思路：原型链　继承，修改原型链的　结构
+      // 继承关系：　arr -> Array.prototype -> Object.prototype -> ...
+      // 改写后：　arr -> 改写的方法 -> Array.prototype -> Object.prototype -> ...
+
+      let array_methods = Object.create(Array.prototype);
+
+      ARRAY_METHOD.forEach(method => {
+        array_methods[method] = function() {
+          // 调用原来的方法
+          console.log("调用的是拦截的" + method);
+          // 将数据　响应式化
+          for (let i = 0; i < arguments.length; i++) {
+            reactify(arguments[i]);
+          }
+
+          let res = Array.prototype[method].apply(this, arguments);
+          return res;
+        };
+      });
+
+      /**
+       * Vue　中的源码做了　判断
+       * 如果浏览器支持　__proto__ 那么他就这么做
+       * 如果不支持，Vue 使用的是　混入法
+       */
+
+      // arr.length = 0　不支持
+      // 可以用 splice() 代替
+
+      function defineReactive(target, key, value, enumerable) {
+        // this　就是Vue 实例
+        let that = this;
+        // 函数内部就是一个局部作用域，这个value就只在函数的使用的变量（闭包）
+        if (
+          typeof value === "object" &&
+          value != null &&
+          !Array.isArray(value)
+        ) {
+          reactify(value);
+        }
+        Object.defineProperty(target, key, {
+          configurable: true,
+          enumerable: !!enumerable,
+
+          get() {
+            console.log(`读取 ${key}`);
+            return value;
+          },
+          set(newValue) {
+            console.log(`设置 ${key} 为 ${newValue}`);
+            value = reactify(newValue);
+
+            // 模板刷新，（只是演示，不是真正的）
+            // Vue　实例，用 watcher 就不会有这个问题
+            that.mountComponent();
+          }
+        });
+      }
+
+      function reactify(obj, vm) {
+        let keys = Object.keys(obj);
+
+        for (let i = 0; i < keys.length; i++) {
+          let key = keys[i]; // 属性名
+          let value = obj[key];
+          /**
+           * 判断这个属性　是不是　引用类型，判断是不是数组
+           * 如果是　引用类型　递归，　否则　不用递归
+           * 如果是　数组，　循环，　将里面的　元素　响应化
+           */
+          if (Array.isArray(value)) {
+            value.__proto__ = array_methods; // 数组就响应式化了
+            for (let j = 0; j < value.length; j++) {
+              reactify(value[j], vm);
+            }
+          } else {
+            defineReactive.call(vm, obj, key, value, true);
+          }
+        }
+      }
+
+      let app = new yhVue({
+        el: "#root",
+        data: {
+          name: "yanhe",
+          age: 22,
+          gender: "male",
+          skill: [{ name: "Vue" }, { name: "nodeJS" }, { name: "Linux" }]
+        }
+      });
+
+      //　修改数据的时候，模板刷新
+    </script>
+  </body>
+</html>

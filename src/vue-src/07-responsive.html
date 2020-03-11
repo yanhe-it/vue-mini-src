@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <script>
+      let obj = {};
+
+      obj.name = "yanhe";
+
+      Object.defineProperty(obj, "age", {
+        configurable: true,
+        writable: true,
+        enumerable: false,
+        value: 19
+      });
+
+      // writale / get() / value　不能同时存在
+      let _age = null;
+      Object.defineProperty(obj, "age", {
+        configurable: true,
+        enumerable: true,
+        get() {
+          return _age;
+        },
+        set(value) {
+          _age = value;
+        }
+      });
+
+      // 如果同时使用　set　和 get　需要一个中间变量存储真正的数据
+
+      // 问题：　_age　暴露在　全局作用域
+
+      /**
+       * 解决方法如下
+       */
+      let o = {
+        name: "yanhe",
+        age: 22,
+        gender: "男"
+      };
+      // 简化后版本
+      function defineReactive(target, key, value, enumerable) {
+        // 函数内部就是一个局部作用域，这个value就只在函数的使用的变量（闭包）
+        Object.defineProperty(target, key, {
+          configurable: true,
+          enumerable: !!enumerable,
+
+          get() {
+            console.log(`读取o的 ${key}`)
+            return value;
+          },
+          set(newValue) {
+            console.log(`设置o的 ${key} 为 ${newValue}`)
+            value = newValue;
+          }
+        });
+      }
+
+      // 将　对象　转换为　响应式
+      let keys = Object.keys(o);
+      for (let i = 0; i < keys.length; i++) {
+        defineReactive(o, keys[i], o[keys[i]], true)
+      }
+    </script>
+  </body>
+</html>

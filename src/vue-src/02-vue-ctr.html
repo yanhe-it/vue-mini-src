@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <!-- 模板 -->
+    <div id="root">
+      <div>
+        <div>
+          <p>{{ name }}-{{ message }}</p>
+        </div>
+      </div>
+      <p>{{ name }}</p>
+      <p>{{ message }}</p>
+    </div>
+
+    <script>
+      let regBrace = /\{\{(.+?)\}\}/g;
+      function compiler(template, data) {
+        let childNodes = template.childNodes;
+        for (let i = 0; i < childNodes.length; i++) {
+          let type = childNodes[i].nodeType; // 1.元素 2.属性 3.文本 8.注释 9.文档
+          if (type === 3) {
+            // 文本结点,可以判断里面是否有 {{}} 插值
+            let txt = childNodes[i].nodeValue;
+            // 判断有没有{{}}
+            txt = txt.replace(regBrace, function(_, g) {
+              // replace使用正则匹配一次,函数就调用一次 args0:匹配到的内容 argsn:正则中的第n组
+              let key = g.trim(); //花括号中的东西
+              let value = data[key];
+              // 替换{{}}
+              return value;
+            });
+            // 注意：　txt现在和DOM元素没有关系
+            childNodes[i].nodeValue = txt;
+          } else if (type === 1) {
+            // 元素,考虑它有没有子元素,将其子元素进行 判断是否有插值
+            compiler(childNodes[i], data);
+          }
+        }
+      }
+
+      function yhVue(options) {
+        // 习惯：_开头表示　内部的数据，$开头表示　只读数据
+        this._data = options.data;
+        this._el = options.el;
+
+        // 准备（准备模板）
+        this.$el = this._templateDOM = document.querySelector(this._el);
+        this._parent = this._templateDOM.parentNode;
+
+        // 渲染
+        this.render();
+      }
+      /** 将模板　结合　数据，　得到HTML　加载到　页面中 */
+      // js中prototype能向对象添加原型和方法
+      yhVue.prototype.render = function() {
+        this.compiler();
+      };
+      /** 编译，　将模板与数据结合　得到真正的 DOM　元素 */
+      yhVue.prototype.compiler = function() {
+        let realHTMLDOM = this._templateDOM.cloneNode(true); // 将模板 拷贝 得到一个　准DOM
+        compiler(realHTMLDOM, this._data);
+        this.update(realHTMLDOM);
+      };
+      /**　将　DOM 元素　加载到　页面中 */
+      yhVue.prototype.update = function(real) {
+        this._parent.replaceChild(real, document.querySelector("#root"));
+      };
+
+      // 想想怎么用
+      let app = new yhVue({
+        el: "#root",
+        data: {
+          name: "yanhe",
+          message: "ByteDance"
+        }
+      });
+    </script>
+  </body>
+</html>

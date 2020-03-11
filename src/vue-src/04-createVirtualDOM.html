@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <div id="root">
+      <div class="c1">hello1</div>
+      <div title="t2" id="hello2">hello2</div>
+      <div title="t3">hello3</div>
+      <ul>
+        <li>1</li>
+        <li>2</li>
+        <li>3</li>
+      </ul>
+    </div>
+    <script>
+      // 为什么要使用　虚拟DOM　？　提高性能
+      // <div></div> => { tag: 'div' }
+      // 文本节点　=> { tag: undefined, value: '文本' }
+      // <div title="1" class="c"></div> => { tag: 'div', data: { title: '1', class: 'c'}}
+      // <div><div></div></div> => { tag: 'div', children: [ { tag: 'div'} ] }
+      class VNode {
+        constructor(tag, data, value, type) {
+          this.tag = tag && tag.toLowerCase();
+          this.data = data;
+          this.value = value;
+          this.type = type;
+          this.children = [];
+        }
+
+        appendChild(vnode) {
+          this.children.push(vnode);
+        }
+      }
+      /*
+       * 使用　递归　来遍历 DOM 元素，生成　虚拟DOM
+       * Vue　中的源码使用的是　栈结构，使用　栈　存储　父元素　来实现递归生成
+       */
+      function genVNode(node) {
+        let nodeType = node.nodeType;
+        let _vnode = null;
+        if (nodeType === 1) {
+          // 元素
+          let nodeName = node.nodeName;
+          let attrs = node.attributes;
+          let _attrObj = {};
+          for (let i = 0; i < attrs.length; i++) {
+            // attrs[i] 属性节点（nodeType == 2）
+            _attrObj[attrs[i].nodeName] = attrs[i].nodeValue;
+          }
+          _vnode = new VNode(nodeName, _attrObj, undefined, nodeType);
+
+          // vnode 的　子元素
+          let childNodes = node.childNodes;
+          for (let i = 0; i < childNodes.length; i++) {
+            _vnode.appendChild(genVNode(childNodes[i]));
+          }
+        } else if (nodeType === 3) {
+          //文本
+          _vnode = new VNode(undefined, undefined, node.nodeValue, nodeType);
+        }
+
+        return _vnode;
+      }
+
+      let root = document.querySelector("#root");
+
+      let vroot = genVNode(root);
+      console.log(vroot);
+
+      // 根据　虚拟DOM 创建真实的　DOM
+      function parseVNode(vnode) {
+        let nodeType = vnode.type;
+        let _node = null
+        if (nodeType === 1) {
+          _node = document.createElement(vnode.tag)
+          let data = vnode.data;
+          // 遍历对象方法 1
+          for (let key in data) {
+            let attrName = key;
+            let attrValue = data[key]
+            _node.setAttribute(attrName, attrValue)
+          }
+          // // 遍历对象方法　2
+          // Object.keys(data).forEach((key) => {
+          //   let attrName = key;
+          //   let attrValue = data[key]
+          //   _node.createAttribute(attrName, attrValue)
+          // })
+          vnode.children.forEach(subvnode => {
+            _node.appendChild(parseVNode(subvnode));
+          });
+        } else if (nodeType === 3) {
+          return document.createTextNode(vnode.value)
+        }
+        return _node;
+      }
+      console.log(parseVNode(vroot));
+    </script>
+  </body>
+</html>

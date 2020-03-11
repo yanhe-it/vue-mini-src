@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <script>
+      // 全局的 event 对象, 提供 on, off, emit 方法
+      var event = (function() {
+        eventObjs = {};
+
+        return {
+          /** 注册事件,可以连续注册,可以注册多个事件 */
+          on: function(type, handler) {
+            (eventObjs[type] || (eventObjs[type] = [])).push(handler);
+          },
+
+          /**
+           * 移除事件
+           * 如果没有参数,移除所有事件
+           * 如果只带有 事件名 参数, 就移除 这个事件名下 的所有事件
+           * 如果滴啊有 两个参数, 那么就 移除 某一个事件 的具体处理函数
+           */
+          off: function(type, handler) {
+            if (arguments.length === 0) {
+              // 移除所有事件
+              eventObjs = {};
+            } else if (arguments.length === 1) {
+              // 移除 该类型 的所有事件
+              eventObjs[type] = {};
+            } else if (arguments.length === 2) {
+              // 移除 type 类型的 handle 处理函数
+              let _events = eventObjs[type];
+              if (!_events) return;
+              // 倒着循环,不会改变数组长度
+              for (let i = _events.length - 1; i >= 0; i--) {
+                if (_events[i] === handler) {
+                  _events.splice(i, 1);
+                }
+              }
+            }
+          },
+
+          // 发射事件, 触发事件, 参数传给 事件处理函数
+          emit: function(type) {
+            let args = Array.prototype.splice.call(arguments, 1);
+            let _events = eventObjs[type];
+            if (!_events) return;
+
+            for (let i = 0; i < _events.length; i++) {
+              // 如果 要 绑定 上下文 就需要 call/apply
+              _events[i].apply(null, args);
+            }
+          }
+        };
+      })();
+    </script>
+    
+    <script>
+      event.on('click', () => console.log('event 1'))
+      event.on('click', () => console.log('event 2'))
+      event.on('click', () => console.log('event 3'))
+      event.on('click', () => console.log('event 4'))
+      event.on('click', () => console.log('event 5'))
+      event.on('click', () => console.log('event 6'))
+
+      function f() {
+        event.emit('click')
+      }
+    </script>
+  </body>
+</html>

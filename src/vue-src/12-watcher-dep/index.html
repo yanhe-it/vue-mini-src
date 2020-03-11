@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <div id="root">
+      <div class="c1">{{ name }}</div>
+      <div title="t2" id="hello2">{{ age }}</div>
+      <div title="t3">{{ gender }}</div>
+      <ul>
+        <li>1</li>
+        <li>2</li>
+        <li>3</li>
+      </ul>
+    </div>
+    <script src="./src/watcher.js"></script>
+    <script src="./src/dep.class.js"></script>
+    <script src="./src/vnode.class.js"></script>
+    <script src="./src/compiler.js"></script>
+    <script src="./src/yh_vue.js"></script>
+    <script src="./src/init_render.js"></script>
+    <script src="./src/init_data.js"></script>
+
+    <script>
+      let app = new yhVue({
+        el: "#root",
+        data: {
+          name: "yanhe",
+          age: 22,
+          gender: "male",
+          skill: [
+            { name: "Vue", proficiency: 9 },
+            { name: "nodeJS", proficiency: 8 },
+            { name: "Linux", proficiency: 8 }
+          ],
+          a: {
+            b: {
+              c: 'ByteDance'
+            }
+          }
+        }
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <div class="content">
+      yanhe.site
+    </div>
+    <input type="text" name="user" /><span></span>
+
+    <script>
+      // A. 找出字符串中的数字
+      let A = "jkfaka2343jklfl0980jfl";
+      // 1.不使用正则表达式
+      let nums = [...A].filter(a => !Number.isNaN(parseInt(a)));
+      console.log(nums.join("")); //23430980
+      // 2.使用正则表达式
+      console.log(A.match(/\d/g).join("")); //23430980
+
+      // B. 查找B中是否有该元素
+      let B = "yanhe.site";
+      // /a/ a不能是变量
+      console.log(/y/.test(B)); // true
+      console.log(/yb/.test(B)); // false
+      console.log(/@/.test(B)); // false
+      // 如果是变量
+      let b = "a";
+      console.log(eval(`/${b}/`).test(B)); // true
+
+      // C. new RegExt(pattern, flag)   替换
+      // let C = 'yanhe.site'
+      // let c = 'y'
+      // let reg = new RegExp(c, 'g')
+      // console.log(reg.test(C))
+      // console.log(
+      //   'abc'.replace(/\w/g, search => {
+      //     return 'yh'
+      //   })
+      // )
+      // let con = prompt('请输入要检测的内容,支持正则')
+      // let reg = new RegExp(con, 'g')
+      // let div = document.querySelector('div')
+      // div.innerHTML = div.innerHTML.replace(reg, search => {
+      //   return `<span style="color: red">${search}</span>`
+      // })
+
+      // D. 或
+      let D = "yanhe";
+      console.log(/aaaa|e/.test(D));
+      let tel = "010-9999999";
+      console.log(/(010|020)\-\d{7,8}/.test(tel));
+
+      // [aaabbb]匹配任意一个就行 (aaa) 必须匹配aaa
+
+      // let price = '23.34'
+      // // .除换行符和结束符任何字符 .普通点
+      // console.log(/\d+\.\d+/.test(price))
+      // // 字符串中\d=d ,要想使用\d必须再次转义
+      // let reg = new RegExp('\\d+\\.\\d+')
+      // console.log(reg.test(price))
+      let url = "https://www.yanhe.site";
+      console.log(/https?:\/\/\w*\.\w+\.\w+/.test(url)); //true
+
+      // ^ 起始边界 $ 结束边界
+      document.querySelector("[name='user']").addEventListener("keyup", function() {
+        let flag = this.value.match(/^[a-z]{3,6}$/);
+        document.querySelector('span').innerHTML = flag ? 'true' : 'false'
+      });
+
+      // \d数字 \w数字/字母/下划线 
+      // i 不区分大小写 m 多行匹配
+
+    </script>
+  </body>
+</html>

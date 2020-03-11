@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>makeMap</title>
+  </head>
+  <body>
+    <script>
+      let tagsStr = "div,p,tag,a,li,ul,img";
+      let tags = tagsStr.split(",");
+       
+      function makeMap(tag) {
+        let set = {}
+        // forEach只执行一次
+        tags.forEach(key => {
+          set[key] = true;
+        });
+        return function (tagName) {
+          return !!set[tagName.toLowerCase()]
+        }
+      }
+
+      let isHTMLTag = makeMap(tags)
+    </script>
+  </body>
+</html>

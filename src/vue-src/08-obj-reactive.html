@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <script>
+      // 1.基本类型：Underfined ,Null, Boolean,Number,String
+      // 2.引用类型： Object，Array，Date，Function
+      // 首先了解一个概念：栈内存与堆内存---这是两种不同的内存分配方法
+      // 一般代码逻辑，简单变量，结构体都是放在栈中；而对象，以及被装箱的数据放在堆中
+
+      /* 解决　对象　多级嵌套　响应式
+       * 可以使用　递归 || 队列（深度优先　转换为　广度优先）
+       */
+      let data = {
+        name: "yanhe",
+        age: 22,
+        skill: [{ name: "Vue" }, { name: "nodeJS" }, { name: "Linux" }]
+      };
+
+      function defineReactive(target, key, value, enumerable) {
+        // 函数内部就是一个局部作用域，这个value就只在函数的使用的变量（闭包）
+        if (
+          typeof value === "object" &&
+          value != null &&
+          !Array.isArray(value)
+        ) {
+          reactify(value);
+        }
+        Object.defineProperty(target, key, {
+          configurable: true,
+          enumerable: !!enumerable,
+
+          get() {
+            console.log(`读取 ${key}`);
+            return value;
+          },
+          set(newValue) {
+            console.log(`设置 ${key} 为 ${newValue}`);
+            value = newValue;
+          }
+        });
+      }
+
+      function reactify(obj) {
+        let keys = Object.keys(obj);
+
+        for (let i = 0; i < keys.length; i++) {
+          let key = keys[i]; // 属性名
+          let value = obj[key];
+          /**
+           * 判断这个属性　是不是　引用类型，判断是不是数组
+           * 如果是　引用类型　递归，　否则　不用递归
+           * 如果是　数组，　循环，　将里面的　元素　响应化
+           */
+          if (Array.isArray(value)) {
+            for (let j = 0; j < value.length; j++) {
+              reactify(value[j]);
+            }
+          } else {
+            defineReactive(obj, key, value, true);
+          }
+        }
+      }
+
+      reactify(data)
+
+      /**
+       * 这个就是在函数原有的基础上增加额外的操作：　函数的拦截/面向切面编程
+       * 1. 使用一个临时的函数名存储函数
+       * 2. 重新定义原来的函数
+       * 3. 定义扩展的功能
+       * 4. 调用临时的那个函数
+       */
+      function func() {
+        console.log("原始功能");
+      }
+      // 1
+      let _tmpFn = func;
+
+      // 2
+      func = function() {
+        _tmpFn();
+
+        // 3
+        console.log("新功能");
+      };
+
+      func();
+    </script>
+  </body>
+</html>
